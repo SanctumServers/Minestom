@@ -1,11 +1,17 @@
 package net.minestom.server.world;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;
+import net.minestom.server.registry.ResourceGatherer;
 import net.minestom.server.utils.NamespaceID;
 import org.jglrxavpok.hephaistos.nbt.NBTCompound;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Optional;
 
 /**
@@ -15,53 +21,55 @@ import java.util.Optional;
 @Builder(builderMethodName = "hiddenBuilder", access = AccessLevel.PRIVATE)
 public class DimensionType {
 
-    public static final DimensionType OVERWORLD = DimensionType.builder(NamespaceID.from("minecraft:overworld"))
-            .ultrawarm(false)
-            .natural(true)
-            .shrunk(false)
-            .piglinSafe(false)
-            .respawnAnchorSafe(false)
-            .bedSafe(true)
-            .raidCapable(true)
-            .skylightEnabled(true)
-            .ceilingEnabled(false)
-            .fixedTime(Optional.empty())
-            .ambientLight(0.0f)
-            .logicalHeight(256)
-            .infiniburn(NamespaceID.from("minecraft:infiniburn_overworld"))
-            .build();
+    public static final DimensionType OVERWORLD = DimensionType.silentFromData(NamespaceID.from("minecraft:overworld"));
 
-    public static final DimensionType NETHER = DimensionType.builder(NamespaceID.from("minecraft:the_nether"))
-            .ultrawarm(true)
-            .natural(false)
-            .shrunk(true)
-            .piglinSafe(true)
-            .respawnAnchorSafe(true)
-            .bedSafe(false)
-            .raidCapable(false)
-            .skylightEnabled(false)
-            .ceilingEnabled(true)
-            .fixedTime(Optional.of(18000L))
-            .ambientLight(0.1f)
-            .logicalHeight(128)
-            .infiniburn(NamespaceID.from("minecraft:infiniburn_nether"))
-            .build();
+    public static final DimensionType NETHER = DimensionType.silentFromData(NamespaceID.from("minecraft:the_nether"));
 
-    public static final DimensionType END = DimensionType.builder(NamespaceID.from("minecraft:the_end"))
-            .ultrawarm(false)
-            .natural(false)
-            .shrunk(false)
-            .piglinSafe(false)
-            .respawnAnchorSafe(false)
-            .bedSafe(false)
-            .raidCapable(true)
-            .skylightEnabled(false)
-            .ceilingEnabled(false)
-            .fixedTime(Optional.of(6000L))
-            .ambientLight(0.0f)
-            .logicalHeight(256)
-            .infiniburn(NamespaceID.from("minecraft:infiniburn_end"))
-            .build();
+    public static final DimensionType END = DimensionType.silentFromData(NamespaceID.from("minecraft:the_end"));
+
+    /**
+     * Creates a DimensionType from a json file inside minecraft_data/data/&lt;id domain&gt;/dimension_type/&lt;id path&gt;.json
+     * @param id
+     * @return
+     * @throws java.io.IOException if an error occurred during reading (or the file is missing)
+     */
+    public static DimensionType fromData(NamespaceID id) throws IOException {
+        Gson gson = new Gson();
+        try(FileReader reader = new FileReader(new File(ResourceGatherer.DATA_FOLDER, "data/"+id.getDomain()+"/dimension_type/"+id.getPath()+".json"))) {
+            JsonObject obj = gson.fromJson(reader, JsonObject.class);
+            DimensionTypeBuilder builder = DimensionType.builder(id);
+            builder.raidCapable(obj.get("has_raids").getAsBoolean());
+            builder.logicalHeight(obj.get("logical_height").getAsInt());
+            builder.infiniburn(NamespaceID.from(obj.get("infiniburn").getAsString()));
+            builder.ambientLight(obj.get("ambient_light").getAsFloat());
+            builder.piglinSafe(obj.get("piglin_safe").getAsBoolean());
+            builder.bedSafe(obj.get("bed_works").getAsBoolean());
+            builder.respawnAnchorSafe(obj.get("respawn_anchor_works").getAsBoolean());
+            builder.ultrawarm(obj.get("ultrawarm").getAsBoolean());
+            builder.natural(obj.get("natural").getAsBoolean());
+            builder.shrunk(obj.get("shrunk").getAsBoolean());
+            builder.skylightEnabled(obj.get("has_skylight").getAsBoolean());
+            builder.ceilingEnabled(obj.get("has_ceiling").getAsBoolean());
+            if(obj.has("fixed_time")) {
+                builder.fixedTime(Optional.of(obj.get("fixed_time").getAsLong()));
+            }
+            return builder.build();
+        }
+    }
+
+    /**
+     * Silent version of {@link DimensionType#fromData(NamespaceID)}, will print the error stacktrace and return null on errors
+     * @param id
+     * @return
+     */
+    public static DimensionType silentFromData(NamespaceID id) {
+        try {
+            return fromData(id);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     private final NamespaceID name;
     private final boolean natural;

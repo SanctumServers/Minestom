@@ -8,6 +8,8 @@ import java.io.*;
 import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Responsible for making sure Minestom has the necessary files to run (notably registry files)
@@ -44,7 +46,34 @@ public class ResourceGatherer {
         runDataGenerator(serverJar);
 
         moveAndCleanup(version);
+
+        LOGGER.info("Extracting vanilla worldgen and dimensions...");
+        extractVanillaWorldGen();
         LOGGER.info("Resource gathering done!");
+    }
+
+    private static void extractVanillaWorldGen() throws IOException {
+        // maybe in the future worldgen will be a data provider, for the moment we use the zip provided by slicedlime on GitHub
+        final String vanillaWorldGenPath = "data/minecraft/"; // worldgen json files are always in the data/minecraft folder.
+        Path fullPathToZip = Paths.get("vanilla_worldgen_example/vanilla_worldgen.zip");
+        if(!fullPathToZip.toFile().exists()) {
+            throw new FileNotFoundException("vanilla_worldgen.zip is not available. Did you clone https://github.com/slicedlime/examples/ into vanilla_worldgen_example/ ?");
+        }
+        try(ZipInputStream inputStream = new ZipInputStream(new FileInputStream(fullPathToZip.toFile()))) {
+            ZipEntry entry;
+            while((entry = inputStream.getNextEntry()) != null) {
+                if(entry.isDirectory()) {
+                    continue;
+                }
+                String path = entry.getName();
+                File copy = new File(DATA_FOLDER, vanillaWorldGenPath+path);
+                if(!copy.getParentFile().exists()) {
+                    copy.getParentFile().mkdirs();
+                }
+                Files.copy(inputStream, copy.toPath());
+                LOGGER.debug("> Copied "+path+" to "+copy.getAbsolutePath());
+            }
+        }
     }
 
     private static void moveAndCleanup(String version) throws IOException {
