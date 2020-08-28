@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import net.minestom.server.instance.generation.multinoise.MultiNoiseBiomeParameters;
 import net.minestom.server.utils.NamespaceID;
 import org.jglrxavpok.hephaistos.nbt.NBTCompound;
 
@@ -51,6 +52,8 @@ public class Biome {
 	private final Precipitation precipitation = Precipitation.RAIN;
 	@Builder.Default
 	private TemperatureModifier temperature_modifier = TemperatureModifier.NONE;
+	@Builder.Default
+	private MultiNoiseBiomeParameters multiNoiseBiomeParameters = new MultiNoiseBiomeParameters();
 
 	public NBTCompound toNbt() {
 		NBTCompound nbt = new NBTCompound();
