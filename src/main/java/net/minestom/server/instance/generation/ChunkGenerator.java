@@ -1,27 +1,25 @@
 package net.minestom.server.instance.generation;
 
 import net.minestom.server.instance.batch.ChunkBatch;
+import net.minestom.server.utils.NamespaceID;
+import net.minestom.server.utils.metadata.MetadataField;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class ChunkGenerator {
-    protected final String identifier;
     protected final long seed;
     protected final BiomeSource biomeSource;
-    protected String settings;
+    private final Map<NamespaceID, MetadataField<?>> metadata = new HashMap<>();
 
-    protected ChunkGenerator(@NotNull String identifier, long seed, @NotNull BiomeSource biomeSource, String settings) {
-        this.identifier = identifier;
+    protected ChunkGenerator(long seed, @NotNull BiomeSource biomeSource) {
         this.seed = seed;
         this.biomeSource = biomeSource;
-        this.settings = settings;
     }
 
     public abstract void generateChunkData(@NotNull ChunkBatch batch, int chunkX, int chunkZ);
-
-    @NotNull
-    public String getIdentifier() {
-        return identifier;
-    }
 
     public long getSeed() {
         return seed;
@@ -32,12 +30,21 @@ public abstract class ChunkGenerator {
         return biomeSource;
     }
 
-    @NotNull
-    public String getSettings() {
-        return settings;
+    public void addMetadataField(@NotNull String key, @Nullable Object value) {
+        addMetadataField(new MetadataField<>(key, value));
     }
 
-    public void setSettings(@NotNull String settings) {
-        this.settings = settings;
+    public void addMetadataField(@NotNull MetadataField<?> metadataField) {
+        metadata.put(metadataField.getKey(), metadataField);
+    }
+
+    @Nullable
+    public MetadataField<?> getMetadataField(@NotNull String key) {
+        return getMetadataField(NamespaceID.from(key));
+    }
+
+    @Nullable
+    public MetadataField<?> getMetadataField(@NotNull NamespaceID key) {
+        return metadata.get(key);
     }
 }

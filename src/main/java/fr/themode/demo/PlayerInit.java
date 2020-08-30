@@ -1,27 +1,43 @@
 package fr.themode.demo;
 
 import fr.themode.demo.blocks.StoneBlock;
-import fr.themode.demo.generator.ChunkGeneratorDemo;
-import fr.themode.demo.generator.NoiseTestGenerator;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.benchmark.BenchmarkManager;
 import net.minestom.server.benchmark.ThreadResult;
 import net.minestom.server.chat.ChatColor;
 import net.minestom.server.chat.ColoredText;
 import net.minestom.server.data.Data;
-import net.minestom.server.entity.*;
+import net.minestom.server.entity.Entity;
+import net.minestom.server.entity.EntityCreature;
+import net.minestom.server.entity.GameMode;
+import net.minestom.server.entity.ItemEntity;
+import net.minestom.server.entity.Player;
 import net.minestom.server.entity.damage.DamageType;
 import net.minestom.server.event.entity.EntityAttackEvent;
 import net.minestom.server.event.item.ItemDropEvent;
 import net.minestom.server.event.item.ItemUpdateStateEvent;
 import net.minestom.server.event.item.PickupItemEvent;
-import net.minestom.server.event.player.*;
+import net.minestom.server.event.player.PlayerBlockInteractEvent;
+import net.minestom.server.event.player.PlayerBlockPlaceEvent;
+import net.minestom.server.event.player.PlayerChunkUnloadEvent;
+import net.minestom.server.event.player.PlayerCommandEvent;
+import net.minestom.server.event.player.PlayerDisconnectEvent;
+import net.minestom.server.event.player.PlayerEatEvent;
+import net.minestom.server.event.player.PlayerLoginEvent;
+import net.minestom.server.event.player.PlayerPreEatEvent;
+import net.minestom.server.event.player.PlayerRespawnEvent;
+import net.minestom.server.event.player.PlayerSpawnEvent;
+import net.minestom.server.event.player.PlayerUseItemEvent;
+import net.minestom.server.event.player.PlayerUseItemOnBlockEvent;
 import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.Instance;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.WorldBorder;
 import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.CustomBlock;
+import net.minestom.server.instance.generation.multinoise.MultiNoiseBiomeSource;
+import net.minestom.server.instance.generation.multinoise.NoiseChunkGenerator;
+import net.minestom.server.instance.generation.multinoise.abstraction.SurfaceBuilder;
 import net.minestom.server.inventory.Inventory;
 import net.minestom.server.inventory.InventoryType;
 import net.minestom.server.item.ItemStack;
@@ -32,11 +48,14 @@ import net.minestom.server.ping.ResponseDataConsumer;
 import net.minestom.server.scoreboard.Sidebar;
 import net.minestom.server.utils.BlockPosition;
 import net.minestom.server.utils.MathUtils;
+import net.minestom.server.utils.NamespaceID;
 import net.minestom.server.utils.Position;
 import net.minestom.server.utils.Vector;
 import net.minestom.server.utils.time.TimeUnit;
 import net.minestom.server.world.DimensionType;
+import net.minestom.server.world.biomes.Biome;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
@@ -48,13 +67,30 @@ public class PlayerInit {
 
     static {
         //StorageFolder storageFolder = MinecraftServer.getStorageManager().getFolder("instance_data", new StorageOptions().setCompression(true));
-        ChunkGeneratorDemo chunkGeneratorDemo = new ChunkGeneratorDemo();
-        NoiseTestGenerator noiseTestGenerator = new NoiseTestGenerator();
+        // ChunkGenDemo chunkGenDemo = new ChunkGenDemo();
         //instanceContainer = MinecraftServer.getInstanceManager().createInstanceContainer(storageFolder);
         instanceContainer = MinecraftServer.getInstanceManager().createInstanceContainer(DimensionType.OVERWORLD);
         instanceContainer.enableAutoChunkLoad(true);
         //instanceContainer.setChunkDecider((x,y) -> (pos) -> pos.getY()>40?(short)0:(short)1);
-        instanceContainer.setChunkGenerator(noiseTestGenerator);
+        // GIve the plains biome a surface builder and some other features
+        Biome.PLAINS.addMetadataField("minecraft:multi_noise_temperature", 0.0);
+        Biome.PLAINS.addMetadataField("minecraft:multi_noise_altitude", 0.0);
+        Biome.PLAINS.addMetadataField("minecraft:multi_noise_humidity", 0.0);
+        Biome.PLAINS.addMetadataField("minecraft:multi_noise_weirdness", 0.0);
+        Biome.PLAINS.addMetadataField("minecraft:multi_noise_offset", 0.0);
+        Biome.PLAINS.addMetadataField("minecraft:multi_noise_surface_builder",
+                new SurfaceBuilder(
+                        NamespaceID.from("minecraft:default"),
+                        NamespaceID.from("minecraft:grass_block"),
+                        NamespaceID.from("minecraft:dirt"),
+                        NamespaceID.from("minecraft_gravel"))
+        );
+        int genSeed = 500;
+        int biomeSeed = 413;
+        instanceContainer.setChunkGenerator(
+                NoiseChunkGenerator.newBuilder(
+                        genSeed, new MultiNoiseBiomeSource(biomeSeed, Collections.singletonList(Biome.PLAINS))).build()
+        );
 
         /*netherTest = MinecraftServer.getInstanceManager().createInstanceContainer(DimensionType.NETHER);
         netherTest.enableAutoChunkLoad(true);

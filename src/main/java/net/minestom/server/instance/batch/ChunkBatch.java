@@ -2,14 +2,12 @@ package net.minestom.server.instance.batch;
 
 import net.minestom.server.data.Data;
 import net.minestom.server.instance.Chunk;
-import net.minestom.server.instance.ChunkGenerator;
-import net.minestom.server.instance.ChunkPopulator;
 import net.minestom.server.instance.InstanceContainer;
 import net.minestom.server.instance.block.CustomBlock;
+import net.minestom.server.instance.generation.ChunkGenerator;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -63,22 +61,8 @@ public class ChunkBatch implements InstanceBatch {
 
     public void flushChunkGenerator(ChunkGenerator chunkGenerator, Consumer<Chunk> callback) {
         batchesPool.execute(() -> {
-            final List<ChunkPopulator> populators = chunkGenerator.getPopulators();
-            final boolean hasPopulator = populators != null && !populators.isEmpty();
-
             chunkGenerator.generateChunkData(this, chunk.getChunkX(), chunk.getChunkZ());
-            singleThreadFlush(hasPopulator ? null : callback);
-
-            clearData(); // So the populators won't place those blocks again
-
-            if (hasPopulator) {
-                for (ChunkPopulator chunkPopulator : populators) {
-                    chunkPopulator.populateChunk(this, chunk);
-                }
-                singleThreadFlush(callback);
-
-                clearData(); // Clear populators blocks
-            }
+            singleThreadFlush(callback);
         });
     }
 

@@ -16,6 +16,7 @@ import net.minestom.server.instance.block.Block;
 import net.minestom.server.instance.block.BlockProvider;
 import net.minestom.server.instance.block.CustomBlock;
 import net.minestom.server.instance.block.rule.BlockPlacementRule;
+import net.minestom.server.instance.generation.ChunkGenerator;
 import net.minestom.server.network.packet.server.play.BlockChangePacket;
 import net.minestom.server.network.packet.server.play.ParticlePacket;
 import net.minestom.server.network.packet.server.play.UnloadChunkPacket;
@@ -31,7 +32,16 @@ import net.minestom.server.utils.validate.Check;
 import net.minestom.server.world.DimensionType;
 import net.minestom.server.world.biomes.Biome;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.locks.Lock;
@@ -444,7 +454,7 @@ public class InstanceContainer extends Instance {
         if (chunkGenerator == null) {
             Arrays.fill(biomes, MinecraftServer.getBiomeManager().getById(0));
         } else {
-            chunkGenerator.fillBiomes(biomes, chunkX, chunkZ);
+            Arrays.fill(biomes, MinecraftServer.getBiomeManager().getById(0));
         }
 
         final Chunk chunk;

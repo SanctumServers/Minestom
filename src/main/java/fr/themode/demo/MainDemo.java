@@ -1,18 +1,14 @@
 package fr.themode.demo;
 
+import fr.themode.demo.generator.ChunkGenDemo;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.entity.GameMode;
 import net.minestom.server.event.player.PlayerLoginEvent;
 import net.minestom.server.event.player.PlayerSpawnEvent;
-import net.minestom.server.instance.*;
-import net.minestom.server.instance.batch.ChunkBatch;
-import net.minestom.server.instance.block.Block;
+import net.minestom.server.instance.InstanceContainer;
+import net.minestom.server.instance.InstanceManager;
 import net.minestom.server.network.ConnectionManager;
 import net.minestom.server.utils.Position;
-import net.minestom.server.world.biomes.Biome;
-
-import java.util.Arrays;
-import java.util.List;
 
 public class MainDemo {
 
@@ -24,7 +20,7 @@ public class MainDemo {
         // Create the instance
         InstanceContainer instanceContainer = instanceManager.createInstanceContainer();
         // Set the ChunkGenerator
-        instanceContainer.setChunkGenerator(new GeneratorDemo());
+        instanceContainer.setChunkGenerator(new ChunkGenDemo());
         // Enable the auto chunk loading (when players come close)
         instanceContainer.enableAutoChunkLoad(true);
 
@@ -46,30 +42,6 @@ public class MainDemo {
 
         // Start the server
         minecraftServer.start("localhost", 25565);
-    }
-
-    private static class GeneratorDemo extends ChunkGenerator {
-
-        @Override
-        public void generateChunkData(ChunkBatch batch, int chunkX, int chunkZ) {
-            // Set chunk blocks
-            for (byte x = 0; x < Chunk.CHUNK_SIZE_X; x++)
-                for (byte z = 0; z < Chunk.CHUNK_SIZE_Z; z++) {
-                    for (byte y = 0; y < 40; y++) {
-                        batch.setBlock(x, y, z, Block.STONE);
-                    }
-                }
-        }
-
-        @Override
-        public void fillBiomes(Biome[] biomes, int chunkX, int chunkZ) {
-            Arrays.fill(biomes, MinecraftServer.getBiomeManager().getById(0));
-        }
-
-        @Override
-        public List<ChunkPopulator> getPopulators() {
-            return null;
-        }
     }
 
 }

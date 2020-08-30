@@ -4,10 +4,14 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
-import net.minestom.server.instance.generation.multinoise.MultiNoiseBiomeParameters;
 import net.minestom.server.utils.NamespaceID;
+import net.minestom.server.utils.metadata.MetadataField;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jglrxavpok.hephaistos.nbt.NBTCompound;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
@@ -20,8 +24,9 @@ public class Biome {
 
 	//A plains biome has to be registered or else minecraft will crash
 	public static final Biome PLAINS = Biome.builder()
-			.category(Category.NONE)
+			.category(Category.PLAINS)
 			.name(NamespaceID.from("minecraft:plains"))
+			.precipitation(Precipitation.RAIN)
 			.temperature(0.8F)
 			.downfall(0.4F)
 			.depth(0.125F)
@@ -52,8 +57,8 @@ public class Biome {
 	private final Precipitation precipitation = Precipitation.RAIN;
 	@Builder.Default
 	private TemperatureModifier temperature_modifier = TemperatureModifier.NONE;
-	@Builder.Default
-	private MultiNoiseBiomeParameters multiNoiseBiomeParameters = new MultiNoiseBiomeParameters();
+
+	private final Map<NamespaceID, MetadataField<?>> metadata = new HashMap<>();
 
 	public NBTCompound toNbt() {
 		NBTCompound nbt = new NBTCompound();
@@ -109,4 +114,21 @@ public class Biome {
 		}
 	}
 
+	public void addMetadataField(@NotNull String key, @Nullable Object value) {
+		addMetadataField(new MetadataField<>(key, value));
+	}
+
+	public void addMetadataField(@NotNull MetadataField<?> metadataField) {
+		metadata.put(metadataField.getKey(), metadataField);
+	}
+
+	@Nullable
+	public MetadataField<?> getMetadataField(@NotNull String key) {
+		return getMetadataField(NamespaceID.from(key));
+	}
+
+	@Nullable
+	public MetadataField<?> getMetadataField(@NotNull NamespaceID key) {
+		return metadata.get(key);
+	}
 }

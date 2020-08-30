@@ -3,6 +3,7 @@ package net.minestom.server.instance.generation.multinoise;
 import de.articdive.jnoise.JNoise;
 import net.minestom.server.instance.generation.BiomeSource;
 import net.minestom.server.instance.generation.multinoise.util.FiveDimensionalVoronoiMap;
+import net.minestom.server.utils.metadata.MetadataField;
 import net.minestom.server.world.biomes.Biome;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,14 +16,29 @@ public final class MultiNoiseBiomeSource extends BiomeSource {
     private final JNoise weirdnessNoise = JNoise.newBuilder().perlin().setSeed(seed - 10).build();
     private final FiveDimensionalVoronoiMap<Biome> biomeMap = new FiveDimensionalVoronoiMap<>();
 
-    protected MultiNoiseBiomeSource(@NotNull String identifier, int seed, List<Biome> biomes) {
-        super("minecraft:multi_noise", seed, biomes);
+    public MultiNoiseBiomeSource(int seed, List<Biome> biomes) {
+        super(seed, biomes);
         for (Biome b : biomes) {
-            MultiNoiseBiomeParameters parameters = b.getMultiNoiseBiomeParameters();
+            // Get from Metadata
+            MetadataField<?> temperatureField = b.getMetadataField("minecraft:multi_noise_temperature");
+            MetadataField<?> altitudeField = b.getMetadataField("minecraft:multi_noise_altitude");
+            MetadataField<?> humidityField = b.getMetadataField("minecraft:multi_noise_humidity");
+            MetadataField<?> weirdnessField = b.getMetadataField("minecraft:multi_noise_weirdness");
+            MetadataField<?> offsetField = b.getMetadataField("minecraft:multi_noise_offset");
+
+            double temperature = (temperatureField == null || !temperatureField.hasValue()) ? 0.0 : (double) temperatureField.getValue();
+            double altitude = (altitudeField == null || !altitudeField.hasValue()) ? 0.0 : (double) altitudeField.getValue();
+            double humidity = (humidityField == null || !humidityField.hasValue()) ? 0.0 : (double) humidityField.getValue();
+            double weirdness = (weirdnessField == null || !weirdnessField.hasValue()) ? 0.0 : (double) weirdnessField.getValue();
+            double offset = (offsetField == null || !offsetField.hasValue()) ? 0.0 : (double) offsetField.getValue();
+
             biomeMap.add(new FiveDimensionalVoronoiMap.Vec5D<>(
-                    parameters.getTemperature(), parameters.getAltitude(),
-                    parameters.getHumidity(), parameters.getWeirdness(),
-                    parameters.getOffset(), b
+                    temperature,
+                    altitude,
+                    humidity,
+                    offset,
+                    weirdness,
+                    b
             ));
         }
     }
