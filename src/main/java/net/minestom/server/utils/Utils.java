@@ -41,6 +41,25 @@ public final class Utils {
         } while (value != 0);
     }
 
+    public static void writeSizedVarInt(ByteBuf buffer, int address, int value, int size) {
+        if (size > 5 || getVarIntSize(value) > size)
+            throw new IllegalArgumentException("Cant fit " + value + " into " + size + " bytes");
+        buffer.ensureWritable(address + size);
+        buffer.markWriterIndex();
+
+        buffer.writerIndex(address);
+        for (int i = 0; i < size; i++) {
+            byte temp = (byte) (value & 0b01111111);
+            value >>>= 7;
+            if (size - 1 != i) {
+                temp |= 0b10000000;
+            }
+            buffer.writeByte(temp);
+        }
+
+        buffer.resetWriterIndex();
+    }
+
     public static int readVarInt(ByteBuf buffer) {
         int numRead = 0;
         int result = 0;
@@ -111,9 +130,8 @@ public final class Utils {
             }
         }
 
-        final long[] data = blocksId;
-        writeVarIntBuf(buffer, data.length);
-        for (long datum : data) {
+        writeVarIntBuf(buffer, blocksId.length);
+        for (long datum : blocksId) {
             buffer.writeLong(datum);
         }
     }

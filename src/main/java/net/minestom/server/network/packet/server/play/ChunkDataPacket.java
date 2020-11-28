@@ -5,13 +5,13 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import net.minestom.server.MinecraftServer;
 import net.minestom.server.data.Data;
+import net.minestom.server.instance.Chunk;
 import net.minestom.server.instance.block.BlockManager;
 import net.minestom.server.instance.block.CustomBlock;
 import net.minestom.server.instance.palette.PaletteStorage;
 import net.minestom.server.network.packet.server.ServerPacket;
 import net.minestom.server.network.packet.server.ServerPacketIdentifier;
 import net.minestom.server.utils.BlockPosition;
-import net.minestom.server.utils.BufUtils;
 import net.minestom.server.utils.Utils;
 import net.minestom.server.utils.binary.BinaryWriter;
 import net.minestom.server.utils.cache.CacheablePacket;
@@ -41,13 +41,11 @@ public class ChunkDataPacket implements ServerPacket, CacheablePacket {
 
     public int[] sections;
 
-    private static final byte CHUNK_SECTION_COUNT = 16;
-    private static final int MAX_BITS_PER_ENTRY = 16;
-    private static final int MAX_BUFFER_SIZE = (Short.BYTES + Byte.BYTES + 5 * Byte.BYTES + (4096 * MAX_BITS_PER_ENTRY / Long.SIZE * Long.BYTES)) * CHUNK_SECTION_COUNT + 256 * Integer.BYTES;
+    private static final byte CHUNK_SECTION_COUNT = Chunk.CHUNK_SECTION_COUNT;
 
     // Cacheable data
-    private UUID identifier;
-    private long lastUpdate;
+    private final UUID identifier;
+    private final long lastUpdate;
 
     public ChunkDataPacket(@Nullable UUID identifier, long lastUpdate) {
         this.identifier = identifier;
@@ -56,25 +54,11 @@ public class ChunkDataPacket implements ServerPacket, CacheablePacket {
 
     @Override
     public void write(@NotNull BinaryWriter writer) {
+        int mask = computeMask();
+
         writer.writeInt(chunkX);
         writer.writeInt(chunkZ);
         writer.writeBoolean(fullChunk);
-
-        int mask = 0;
-        ByteBuf blocks = BufUtils.getBuffer(MAX_BUFFER_SIZE);
-        for (byte i = 0; i < CHUNK_SECTION_COUNT; i++) {
-            if (fullChunk || (sections.length == CHUNK_SECTION_COUNT && sections[i] != 0)) {
-                final long[] section = paletteStorage.getSectionBlocks()[i];
-                if (section.length > 0) { // section contains at least one block
-                    mask |= 1 << i;
-                    Utils.writeBlocks(blocks, paletteStorage.getPalette(i), section, paletteStorage.getBitsPerEntry());
-                } else {
-                    mask |= 0;
-                }
-            } else {
-                mask |= 0;
-            }
-        }
 
         writer.writeVarInt(mask);
 
@@ -105,10 +89,8 @@ public class ChunkDataPacket implements ServerPacket, CacheablePacket {
         }
 
         // Data
-        writer.writeVarInt(blocks.writerIndex());
-        writer.getBuffer().writeBytes(blocks);
-        blocks.release();
-        
+        writeBlocks(writer.getBuffer(), mask);
+
         // Block entities
         writer.writeVarInt(blockEntities.size());
 
@@ -132,11 +114,50 @@ public class ChunkDataPacket implements ServerPacket, CacheablePacket {
         }
     }
 
+    private void writeBlocks(ByteBuf buffer, int mask) {
+        //store the location of size field
+        final int sizeLoc = buffer.writerIndex();
+        //skip the amount of bytes the size field wil use and clear them
+        buffer.writeByte(0);
+        buffer.writeByte(0);
+        buffer.writeByte(0);
+        //write blocks
+        for (byte i = 0; i < CHUNK_SECTION_COUNT; i++) {
+            //if the section is selected in the mask
+            if (fullChunk || ((mask >> i) & 1) != 0) {
+                final long[] section = paletteStorage.getSectionBlocks()[i];
+                if (section.length > 0) { // section contains at least one block
+                    Utils.writeBlocks(buffer, paletteStorage.getPalette(i), section, paletteStorage.getBitsPerEntry());
+                }
+            }
+        }
+
+        //Write size field
+        //get the size of the block data
+        final int size = buffer.writerIndex() - sizeLoc - 3;
+
+        Utils.writeSizedVarInt(buffer, sizeLoc, size, 3);
+    }
+
+    private int computeMask() {
+        int mask = 0b1111111111111111;
+        for (byte i = 0; i < CHUNK_SECTION_COUNT; i++)
+            //Section is unwanted
+            if (!fullChunk && sections[i] == 0)
+                mask ^= 1 << i;
+            else
+                //Section contains nothing
+                if (paletteStorage.getSectionBlocks()[i].length == 0)
+                    mask ^= 1 << i;
+        return mask;
+    }
+
     @Override
     public int getId() {
         return ServerPacketIdentifier.CHUNK_DATA;
     }
 
+    @NotNull
     @Override
     public TemporaryPacketCache getCache() {
         return CACHE;
