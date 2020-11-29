@@ -177,7 +177,14 @@ public abstract class Entity implements Viewable, EventHandler, DataContainer, P
         return entityById.getOrDefault(id, null);
     }
 
-    private static int generateId() {
+    /**
+     * Generate and return a new unique entity id.
+     * <p>
+     * Useful if you want to spawn entities using packet but don't risk to have duplicated id.
+     *
+     * @return a newly generated entity id
+     */
+    public static int generateId() {
         return lastEntityId.incrementAndGet();
     }
 
@@ -474,7 +481,7 @@ public abstract class Entity implements Viewable, EventHandler, DataContainer, P
                         getVelocity().getY() / tps,
                         getVelocity().getZ() / tps
                 );
-                onGround = CollisionUtils.handlePhysics(this, deltaPos, newPosition, newVelocityOut);
+                this.onGround = CollisionUtils.handlePhysics(this, deltaPos, newPosition, newVelocityOut);
 
                 // Check chunk
                 if (!ChunkUtils.isLoaded(instance, newPosition.getX(), newPosition.getZ())) {
@@ -505,8 +512,8 @@ public abstract class Entity implements Viewable, EventHandler, DataContainer, P
                     }
                 }
 
-                velocity.copy(newVelocityOut);
-                velocity.multiply(tps);
+                this.velocity.copy(newVelocityOut);
+                this.velocity.multiply(tps);
 
                 float drag;
                 if (onGround) {
@@ -528,8 +535,8 @@ public abstract class Entity implements Viewable, EventHandler, DataContainer, P
                     drag = 0.98f; // air drag
                 }
 
-                velocity.setX(velocity.getX() * drag);
-                velocity.setZ(velocity.getZ() * drag);
+                this.velocity.setX(velocity.getX() * drag);
+                this.velocity.setZ(velocity.getZ() * drag);
 
                 sendSynchronization();
 

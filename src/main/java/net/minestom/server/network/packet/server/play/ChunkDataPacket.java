@@ -90,7 +90,7 @@ public class ChunkDataPacket implements ServerPacket, CacheablePacket {
 
         // Data
         writeBlocks(writer.getBuffer(), mask);
-
+        
         // Block entities
         writer.writeVarInt(blockEntities.size());
 
